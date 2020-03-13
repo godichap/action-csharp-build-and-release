@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with Actions
+# warning, you need to replace some text to cope with your project name - search and replace [PROJECT-NAME] by your project name
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request 
+# events but only for the master branch
+on:
+  push:
+       tags: 
+         -   'v*' 
+         -   '*' 
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: [windows-latest]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@master
+    
+    # setup MSBUIld to be able to build
+    - name: setup-msbuild
+      uses: microsoft/setup-msbuild@v1
+
+    # run the build
+    - name: MSBuild Debug
+      working-directory: ./[PROJECT-NAME]
+      run: msbuild /t:Rebuild /P:Configuration=Debug [PROJECT-NAME].csproj
+    - name: Zip Debug
+      uses: DuckSoft/create-7z-action@v1.0
+      with:
+        # file/folder path to compress
+        pathSource: ./[PROJECT-NAME]/bin/Debug/*
+        # 7z archive path to write
+        pathTarget: ./[PROJECT-NAME]/bin/Debug.zip
+          
+    # run the build
+    - name: MSBuild Release
+      working-directory: ./[PROJECT-NAME]
+      run: msbuild /t:Rebuild /P:Configuration=Release [PROJECT-NAME].csproj
+    - name: Zip Release
+      uses: DuckSoft/create-7z-action@v1.0
+      with:
+        # file/folder path to compress
+        pathSource: ./[PROJECT-NAME]/bin/Release/*
+        # 7z archive path to write
+        pathTarget: ./[PROJECT-NAME]/bin/Release.zip
+     
+    # put Zip files in the latest release
+    - name: GH Release
+      uses: softprops/action-gh-release@v0.1.5
+      with:
+        # Newline-delimited list of path globs for asset files to upload
+        files: |
+          ./[PROJECT-NAME]/bin/Debug.zip
+          ./[PROJECT-NAME]/bin/Release.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
